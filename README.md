@@ -7,5 +7,12 @@ These functions are written to transform the data and visualise the result of AC
 * `plot_corr_pheno_genotype`
 * `amr_transform`
 
+## Dependencies R packages 
+*  `dplyr`
+*  `ggplot`
+*  `stringr`
+*  `ComplexHeatmap`
+*  `tidyr`
+
 ## Author
 [Tung Trinh](www.oucru.org)
