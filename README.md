@@ -28,4 +28,4 @@ These functions are written to transform the data and visualise the result of AC
 *  `tidyr`
 
 ## Author
-[Tung Trinh](https://www.oucru.org/people/trinh-son-tung/)
+[Tung Trinh- Oxford University Clinical Research Unit](https://www.oucru.org/people/trinh-son-tung/)
