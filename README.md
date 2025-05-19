@@ -19,6 +19,8 @@ These functions are written to transform the data and visualise the result of AC
 * `plot_patient_timeline`
 * `plot_corr_pheno_genotype`
 * `amr_transform`
+* `create_sample_list`
+* `merge_data`
 
 ## Dependencies R packages 
 *  `dplyr`
