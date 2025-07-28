@@ -1,7 +1,7 @@
 # This script is used to merge the sequencing data with the metadata from ACORN's REDCAP database
 # Written and maintained by Tung Trinh
-# May 15th 2025
-# Version 1.0
+# July 23rd 2025
+# Version 1.1
 # For more information, please contact to tungts@oucru.org 
 ####################################################################################################
 merge_data <- function(input_redcap = "path to the input redcap data",
@@ -30,7 +30,7 @@ merge_data <- function(input_redcap = "path to the input redcap data",
   # get the column name 
   colnames(seq) <- seq[cor_acornid,] 
   # exclude unneccsary column 
-  if(grepl("-",colnames(seq))){
+  if(any(grepl("-",colnames(seq)))){
      seq <- seq[,-grep("-",colnames(seq))] 
   }
   # exclude the column row 
@@ -44,7 +44,7 @@ merge_data <- function(input_redcap = "path to the input redcap data",
   out <- left_join(seq,redcap, by = c("specid" = "specid")) %>% distinct(specid,.keep_all = T)
   ##### output the file #####
   ### rds file 
-  saveRDS(out,file = paste(output_dir,"/merged_metadata_",optional_text,Sys.Date(),".rds"))
+  saveRDS(out,file = paste0(output_dir,"/merged_metadata_",optional_text,Sys.Date(),".rds"))
   ### excel file 
   # create a workbook
   wb <- createWorkbook()
