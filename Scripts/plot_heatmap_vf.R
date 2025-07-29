@@ -6,8 +6,9 @@
 # version 1.0 
 # For more information, please contact to tungts@oucru.org
 ####################################################################################################
-plot_heatmap_vf <- function(input = "input data", var_id = "variable contains the sample ID", metadata = NULL,
-                            sort_by = NULL , outdir = "path to the output directory", optional_text = NULL){
+plot_heatmap_vf <- function(input = "input data", var_id = NULL, metadata = NULL,
+                            sort_by = NULL , outdir = "path to the output directory", optional_text = NULL,
+                            title = NULL){
   ###### required packages and built-in functions #####
   require(dplyr)
   require(readxl)
@@ -22,10 +23,14 @@ plot_heatmap_vf <- function(input = "input data", var_id = "variable contains th
   ##### read the virulence factor dictionary and database  #####
   # read the virulence factor dictionary
   vf <- read_excel("Data/VFs.xls")
-  # create the column name 
   colnames(vf) <- vf[1,] %>% as.vector()
-  # discard the first row 
   vf <- vf[-1,]
+  # read data from vfdb 
+  vfdb_detail <- read.table("Data/vfdb.tab", sep = "\t")
+  vfdb_detail <- vfdb_detail %>% mutate(VFCID = str_extract(V14,"VF[0-9]+"))
+  vfdb_detail <- vfdb_detail %>% select(Gene = V6,VFCID) %>% distinct(.keep_all = T)
+  vfdb_detail <- left_join(vfdb_detail,vf, by = c("VFCID" = "VFID"))
+  vfdb_detail <- vfdb_detail %>% mutate(Gene = str_replace(Gene,"/","."))
   ##### process the data #####
   ### check the input
   if(is.data.frame(input) == F){
@@ -33,13 +38,7 @@ plot_heatmap_vf <- function(input = "input data", var_id = "variable contains th
   }else{
     print(paste("Start processing the dataset"))
   }
-  # check whether the var_id variable available in the dataset or not
-  print("Check the target variable available in the dataset or not")
-  if((var_id %in% colnames(input)) == F){
-    stop(paste("Could not find",var_id,"in the dataset"))
-  }else{
-    print(paste("The target variable",var_id,"found in the dataset"))
-  }
+
   # if sort_by is supplied, check whether sort_by variable is supplied or not 
   if(!is.null(sort_by)){
     if((sort_by %in% colnames(metadata)) == F){
@@ -49,9 +48,11 @@ plot_heatmap_vf <- function(input = "input data", var_id = "variable contains th
     }
   }
   # print the summary of the input dataset 
-  print(paste("input matrix dimension:",dim(dat)) )
+  print(paste("input matrix dimension:",dim(input)) )
   # rename the var_id 
-  input %<>% rename(var_id = matches(var_id))
+  input %<>% rename(var_id = 1)
+  # fix the var_id 
+  input %<>% mutate(var_id = str_replace_all(var_id,"assemblies|[/]|[.short.fasta]",""))
   # rename the sort_by and var_id 
   if(!is.null(metadata) && !is.null(sort_by)){
     metadata %<>% rename(sort_by = matches(sort_by))
@@ -60,9 +61,54 @@ plot_heatmap_vf <- function(input = "input data", var_id = "variable contains th
     to_sort_dat <- metadata %>% select(var_id,sort_by)
   }
   ### join the virulence database with the input 
-  
+  if(!is.null(metadata)&& !is.null(sort_by)){
+  to_work <- left_join(input,to_sort_dat)
+  }else{
+    to_work <- input 
+  }
+  # fix the matrix to plot
+  out <- to_work %>% select(-var_id,-sort_by,-NUM_FOUND)
+  out <- out %>% mutate_all(~as.character(.)) %>% as.matrix(.)
+  out[out == "."] <- F
+  out[out != F ] <- T
+  # assign the name 
+  row.names(out) <- to_work$var_id
   ##### plot the figure #####
+  # column annotation 
+  target_vf <- colnames(out)
+  vf_annotate <- vfdb_detail %>% filter(Gene %in% target_vf) %>% select(Gene,VFcategory) %>%
+    arrange(VFcategory) %>% distinct(.keep_all = T)
+  col_order_hm <- vf_annotate %>% pull(Gene)
+  # 
+  colA <- data.frame(Group = vf_annotate$VFcategory)
+  # rownames(colA) <- vf_annotate %>% pull(Gene) %>% distinct()
   
-  ##### output the figure #####
+  # row annotation
+  rowA <- data.frame(var = to_work$sort_by) %>% arrange(var)
+  rownames(rowA) <- to_work %>% arrange(sort_by) %>% pull(var_id)
   
+  annotated_row <- rowAnnotation(df = rowA)
+  annotated_col <- HeatmapAnnotation(df = colA)
+  
+  row_order_hm <-  to_work %>% arrange(sort_by) %>% pull(var_id)
+  out <- out[row_order_hm,col_order_hm]
+  
+  p<- Heatmap(out,column_title = title,col = c("gray80","brown"),
+          # row_dend_reorder = F,
+          row_order = row_order_hm,
+          column_order = col_order_hm,
+          clustering_method_rows = "ward.D",
+          column_labels = rep("",(n = ncol(out))),
+          top_annotation = annotated_col,
+          # clustering_distance_columns =  "euclidean",
+          heatmap_legend_param = list(
+            title = "Genotype", labels = c("No","Yes")
+          )
+  )
+  
+  
+##### output the figure #####
+  jpeg(filename = paste0(outdir,"/heatmap_vf",optional_text,Sys.Date(),".jpg"), units = "in", res = 300, height = 6,width = 10)
+  draw(p + annotated_row,annotation_legend_side = "top")
+  dev.off()
 }
