@@ -7,7 +7,7 @@
 merge_data <- function(input_redcap = "path to the input redcap data",
                        input_seq = "path to the input sequence metadata",
                        seq_id = "seq id from the input_seq",
-                       sample_id = "sample id from the input_seq",
+                       # sample_id = "sample id from the input_seq",
                        optional_text = NULL,
                        output_dir = "path to output directory"){
   ##### required packages and built-in library #####
@@ -36,8 +36,7 @@ merge_data <- function(input_redcap = "path to the input redcap data",
   # exclude the column row 
   seq <- seq %>% slice(-cor_acornid)
   # change the variable name of certain variables 
-  seq <- seq %>% rename(seq_id = matches(seq_id),
-                 specid = matches(sample_id))
+  seq <- seq %>% rename(specid = matches(seq_id))
   
   ##### merge with the acorn data #####
   #merge
