@@ -6,6 +6,7 @@
 ####################################################################################################
 ##### required packages and built-in functions #####
 library(dplyr)
+library(data.table)
 ##### create database 
 # source of sample 
 source <- data.frame(variable = "surveillance_category",
@@ -21,4 +22,7 @@ outcome <- data.frame(variable = "d28_status",
                       value = c("Alive - completely recovered","Alive - not back to normal activities","Dead",                                 
                                 "Unable to contact"),
                       colour = c("#FCFDBFFF","#F1605DFF","#000004FF","gray70"))
-# 
+# merge the dataset 
+output <- rbindlist(list(outcome,sample_type,source))
+##### output the dataset 
+saveRDS(output,file = paste0("Data/colour_code_db_",Sys.Date(),".rds"))
