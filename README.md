@@ -23,11 +23,14 @@ These functions are written to transform the data and visualise the result of AC
 * `merge_data`
 
 ## Dependencies R packages 
-*  `dplyr`
-*  `ggplot`
-*  `stringr`
-*  `ComplexHeatmap`
-*  `tidyr`
+*   `dplyr`
+*   `ggplot`
+*   `stringr`
+*   `ComplexHeatmap`
+*   `tidyr`
+*   `rJava`
+*   `openxlsx`
+*   `readxl`
 
 ## Author
 [Tung Trinh- Oxford University Clinical Research Unit](https://www.oucru.org/people/trinh-son-tung/)

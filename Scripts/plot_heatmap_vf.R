@@ -20,6 +20,22 @@ plot_heatmap_vf <- function(input = "input data", var_id = NULL, metadata = NULL
   require(patchwork)
   require(data.table)
   require(ComplexHeatmap)
+  source("Scripts/get_colour_code_func.R")
+  ##### get the color code database #####
+  if(!is.null(metadata) && !is.null(sort_by)){
+  # find the latest colour code database 
+  list_file <- list.files(path = "Data",pattern = "colour_code_db", full.names = T)
+  file <- file.info(list_file) %>% arrange(desc(mtime)) %>% slice(1) %>% rownames()
+  # read the file 
+  clr_db <- readRDS(file = file)
+  }
+  # get the colour code 
+  if(!is.null(metadata) && !is.null(sort_by)){
+    if(sort_by %in% unique(clr_db$variable))
+      # get color annotation for the column
+      col_anno_clr <- get_colour_code(metadata,target_variable = sort_by)
+  }
+  
   ##### read the virulence factor dictionary and database  #####
   # read the virulence factor dictionary
   vf <- read_excel("Data/VFs.xls")
@@ -31,6 +47,12 @@ plot_heatmap_vf <- function(input = "input data", var_id = NULL, metadata = NULL
   vfdb_detail <- vfdb_detail %>% select(Gene = V6,VFCID) %>% distinct(.keep_all = T)
   vfdb_detail <- left_join(vfdb_detail,vf, by = c("VFCID" = "VFID"))
   vfdb_detail <- vfdb_detail %>% mutate(Gene = str_replace(Gene,"/","."))
+  ##### create color annotation list 
+  row_anno_color <- list(Group = c("Adherence" = "#774762FF","Effector delivery system" = "#1B3A54FF",
+                         "Nutritional/Metabolic factor" = "#D6BB3BFF","Immune modulation" = "#755028FF",
+                         "Exotoxin" = "#F2DD78FF","Exoenzyme" = "#205F4BFF","Biofilm" = "#913914FF",
+                         "Regulation" = "#585854FF" ,
+                         "Antimicrobial activity/Competitive advantage" = "#F0A430FF","Invasion" = "#768048FF"))
   ##### process the data #####
   ### check the input
   if(is.data.frame(input) == F){
@@ -52,13 +74,13 @@ plot_heatmap_vf <- function(input = "input data", var_id = NULL, metadata = NULL
   # rename the var_id 
   input %<>% rename(var_id = 1)
   # fix the var_id 
-  input %<>% mutate(var_id = str_replace_all(var_id,"assemblies|[/]|[.short.fasta]",""))
+  # input %<>% mutate(var_id = str_replace_all(var_id,"assemblies|[/]|[.short.fasta]|[.long.fasta]",""))
   # rename the sort_by and var_id 
   if(!is.null(metadata) && !is.null(sort_by)){
-    metadata %<>% rename(sort_by = matches(sort_by))
-    metadata %<>% rename(var_id = matches(var_id))
+    metadata %<>% dplyr::rename(sort_by = matches(sort_by))
+    metadata %<>% dplyr::rename(var_id = one_of(var_id))
     # select the selected variable only from the metadata 
-    to_sort_dat <- metadata %>% select(var_id,sort_by)
+    to_sort_dat <- metadata %>% dplyr::select(var_id,sort_by)
   }
   ### join the virulence database with the input 
   if(!is.null(metadata)&& !is.null(sort_by)){
@@ -81,14 +103,15 @@ plot_heatmap_vf <- function(input = "input data", var_id = NULL, metadata = NULL
   col_order_hm <- vf_annotate %>% pull(Gene)
   # 
   colA <- data.frame(Group = vf_annotate$VFcategory)
-  # rownames(colA) <- vf_annotate %>% pull(Gene) %>% distinct()
   
   # row annotation
-  rowA <- data.frame(var = to_work$sort_by) %>% arrange(var)
+  rowA <- data.frame(Variable = to_work$sort_by) %>% arrange(Variable)
   rownames(rowA) <- to_work %>% arrange(sort_by) %>% pull(var_id)
   
-  annotated_row <- rowAnnotation(df = rowA)
-  annotated_col <- HeatmapAnnotation(df = colA)
+  # create a list of color for column annotation 
+  col_anno_cl <- list(Variable = (setNames(col_anno_clr,unique(metadata$sort_by) %>% sort())))
+  annotated_row <- rowAnnotation(df = rowA, col = col_anno_cl)
+  annotated_col <- HeatmapAnnotation(Group = colA %>% pull(Group), col = row_anno_color)
   
   row_order_hm <-  to_work %>% arrange(sort_by) %>% pull(var_id)
   out <- out[row_order_hm,col_order_hm]
@@ -105,7 +128,6 @@ plot_heatmap_vf <- function(input = "input data", var_id = NULL, metadata = NULL
             title = "Genotype", labels = c("No","Yes")
           )
   )
-  
   
 ##### output the figure #####
   jpeg(filename = paste0(outdir,"/heatmap_vf",optional_text,Sys.Date(),".jpg"), units = "in", res = 300, height = 6,width = 10)
