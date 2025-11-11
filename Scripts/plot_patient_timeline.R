@@ -7,7 +7,7 @@
 # For more information, please contact to tungts@oucru.org 
 ####################################################################################################
 plot_patient_timeline <- function(input = "input data", output_dir = "", optional_text = NULL, start_day = -20, end_day = 50,
-                                  height = 7, width = 10){
+                                  height = 7, width = 10, patient_id = "variable contains patient id"){
   ##### required packages and built-in functions #####
   require(dplyr)
   require(ggplot2)
@@ -29,22 +29,22 @@ plot_patient_timeline <- function(input = "input data", output_dir = "", optiona
                      ab2_start = as.numeric(as.Date(bsi_antibiotic2_startdate) - as.Date(date_enrolment)),
                      ab3_start = as.numeric(as.Date(bsi_antibiotic3_startdate) - as.Date(date_enrolment)),
                      ab4_start = as.numeric(as.Date(bsi_antibiotic4_startdate) - as.Date(date_enrolment)),
-                     ab5_start = as.numeric(as.Date(bsi_antibiotic5_startdate) - as.Date(date_enrolment)),
+                     # ab5_start = as.numeric(as.Date(bsi_antibiotic5_startdate) - as.Date(date_enrolment)),
                      ab1_end = as.numeric(as.Date(bsi_antibiotic1_enddate) - as.Date(date_enrolment)),
                      ab2_end = as.numeric(as.Date(bsi_antibiotic2_enddate) - as.Date(date_enrolment)),
                      ab3_end = as.numeric(as.Date(bsi_antibiotic3_enddate) - as.Date(date_enrolment)),
-                     ab4_end = as.numeric(as.Date(bsi_antibiotic4_enddate) - as.Date(date_enrolment)),
-                     ab5_end = as.numeric(as.Date(bsi_antibiotic5_enddate) - as.Date(date_enrolment))
-  )
+                     ab4_end = as.numeric(as.Date(bsi_antibiotic4_enddate) - as.Date(date_enrolment))
+                     # ab5_end = as.numeric(as.Date(bsi_antibiotic5_enddate) - as.Date(date_enrolment)
+                                          ) %>% rename(target_id = matches(patient_id))
   # subset the data 
   # subset the data for timeline chart 
-  timeline <- input %>% select(acornid, start_date,hospitalised_date, end_date, death_date, specimen_date,onset_date,ends_with("_start"),ends_with("_end"))%>% distinct(., .keep_all = T)
+  timeline <- input %>% select(target_id, start_date,hospitalised_date, end_date, death_date, specimen_date,onset_date,ends_with("_start"),ends_with("_end"))%>% distinct(., .keep_all = T)
   # calculate the number of specimen times then transform the date of sampling from long to wide 
-  timeline_ <- timeline %>% group_by(acornid) %>% mutate(times_specimen = n()) %>% ungroup %>% arrange((acornid)) %>% 
-    group_by(acornid) %>% mutate(specimen_time_ = 1:max(times_specimen)) %>% ungroup %>% spread(.,key = "specimen_time_",value = "specimen_date") %>% 
+  timeline_ <- timeline %>% group_by(target_id) %>% mutate(times_specimen = n()) %>% ungroup %>% arrange((target_id)) %>% 
+    group_by(target_id) %>% mutate(specimen_time_ = 1:max(times_specimen)) %>% ungroup %>% spread(.,key = "specimen_time_",value = "specimen_date") %>% 
     filter(times_specimen >= 1) 
   # assign column name of variables contains the date of sampling
-  colnames(timeline_)[18:24] <- paste0("date_specimen",colnames(timeline_)[18:24])
+  colnames(timeline_)[grep("^[0-9]", colnames(timeline_))] <- paste0("date_specimen",colnames(timeline_)[grep("^[0-9]", colnames(timeline_))])
   # get the id 
   # acorn_id <- unique(timeline_$acornid)
   # plot 
@@ -65,8 +65,8 @@ plot_patient_timeline <- function(input = "input data", output_dir = "", optiona
     geom_segment(aes(x = ab2_start, y = -0.15, yend = -0.15, xend = ab2_end),size = 2, color = "darkgreen", alpha = 0.8)+
     geom_segment(aes(x = ab3_start, y = -0.2, yend = -0.2, xend = ab3_end),size = 2, color = "darkgreen", alpha = 0.8)+
     geom_segment(aes(x = ab4_start, y = -0.25, yend = -0.25, xend = ab4_end),size = 2, color = "darkgreen", alpha = 0.8)+
-    geom_segment(aes(x = ab5_start, y = -0.3, yend = -0.3, xend = ab5_end),size = 2, color = "darkgreen", alpha = 0.8)+
-    facet_wrap(~acornid)+xlab("time since enrollment (days)")+ylab("")+ylim(-0.4,0.4)+xlim(start_day,end_day)+
+    # geom_segment(aes(x = ab5_start, y = -0.3, yend = -0.3, xend = ab5_end),size = 2, color = "darkgreen", alpha = 0.8)+
+    facet_wrap(~target_id)+xlab("time since enrollment (days)")+ylab("")+ylim(-0.4,0.4)+xlim(start_day,end_day)+
     theme_classic()+
     theme(axis.text.y=element_blank(),
           axis.ticks.y = element_blank(),
@@ -76,7 +76,7 @@ plot_patient_timeline <- function(input = "input data", output_dir = "", optiona
   ##### output ######
   jpeg(file = paste0(output_dir,"patient_timeline",optional_text,Sys.Date(),".jpeg"), units = "in",
        height = height,width = width, res = 300)
-  plot_list(plot) %>% print()
+  plot %>% print()
   dev.off()
   
 }

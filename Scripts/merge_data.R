@@ -5,6 +5,7 @@
 # For more information, please contact to tungts@oucru.org 
 ####################################################################################################
 merge_data <- function(input_redcap = "path to the input redcap data",
+                       sheet = NULL,
                        input_seq = "path to the input sequence metadata",
                        seq_id = "seq id from the input_seq",
                        # sample_id = "sample id from the input_seq",
@@ -21,20 +22,20 @@ merge_data <- function(input_redcap = "path to the input redcap data",
   # redcap 
   redcap <- read_excel(input_redcap, sheet = "acorn_dta")
   # seq
-  seq <- read_excel(input_seq)
+  seq <- read_excel(input_seq, sheet = sheet)
   ##### transform the data #####
   ### transform seq data into usable form 
   ## find the row that contain the acorn id 
   # find the acorn id 
-  cor_acornid <- seq %>% map(~grep("acornid",.)) %>% unlist 
+  cor_acornid <- seq %>% map(~grep("acornid|ACORN[-]ID",.)) %>% unlist 
   # get the column name 
   colnames(seq) <- seq[cor_acornid,] 
   # exclude unneccsary column 
-  if(any(grepl("-",colnames(seq)))){
-     seq <- seq[,-grep("-",colnames(seq))] 
+  if(any(grepl("-$|NA",colnames(seq)))){
+     seq <- seq[,-grep("-$|NA",colnames(seq))] 
   }
   # exclude the column row 
-  seq <- seq %>% slice(-cor_acornid)
+  seq <- seq %>% slice(-as.numeric(cor_acornid))
   # change the variable name of certain variables 
   seq <- seq %>% rename(specid = matches(seq_id))
   
