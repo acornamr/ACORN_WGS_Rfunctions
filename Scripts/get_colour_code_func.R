@@ -11,7 +11,7 @@ get_colour_code <- function(input_data = "",
   ##### get the database #####
   # find the latest colour code database 
   list_file <- list.files(path = "Data",pattern = "colour_code_db", full.names = T)
-  file <- file.info(list_file) %>% arrange(mtime) %>% slice(1) %>% rownames()
+  file <- file.info(list_file) %>% arrange(desc(mtime)) %>% slice(1) %>% rownames()
   # read the file 
   db <- readRDS(file = file)
   ##### get the color code 
@@ -33,5 +33,4 @@ get_colour_code <- function(input_data = "",
   ##### output the colour code 
   return(output)
 }
-input_data <- readRDS("Data/ACORN_Indonesia/merged_metadata_acorn_indonesia2025-08-13.rds")
-# target_variable = "d28_status"
+
